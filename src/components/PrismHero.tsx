@@ -463,6 +463,11 @@ export interface PrismHeroProps {
   sceneChildren?: React.ReactNode
   /** Adds top padding so the copy clears a fixed site header. */
   topInset?: boolean
+  /**
+   * Lets the mouse wheel drive the crystal (0..1 progress) even when the
+   * page itself never scrolls. Starts from `staticProgress` when set.
+   */
+  spinOnWheel?: boolean
   className?: string
 }
 
@@ -483,6 +488,7 @@ export function PrismHero({
   staticProgress,
   sceneChildren,
   topInset = false,
+  spinOnWheel = false,
   className,
 }: PrismHeroProps) {
   const sectionRef = React.useRef<HTMLDivElement>(null)
@@ -552,8 +558,28 @@ export function PrismHero({
       if (railRef.current) railRef.current.style.transform = `scaleX(${p})`
     }
 
+    const base =
+      staticProgress !== undefined ? Math.min(1, Math.max(0, staticProgress)) : 0
+
+    // Wheel-driven spin for non-scrolling pages: accumulates wheel deltas
+    // into the same normalized progress the scroll path used to write.
+    if (spinOnWheel && !reducedMotion) {
+      let v = base
+      paint(v)
+      const el = stageRef.current ?? sectionRef.current
+      const onWheel = (e: WheelEvent) => {
+        const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY
+        v = Math.min(1, Math.max(0, v + dy * 0.0009))
+        paint(v)
+      }
+      el?.addEventListener("wheel", onWheel, { passive: true })
+      return () => {
+        el?.removeEventListener("wheel", onWheel)
+      }
+    }
+
     if (staticProgress !== undefined) {
-      paint(Math.min(1, Math.max(0, staticProgress)))
+      paint(base)
       return
     }
     if (reducedMotion) {
@@ -582,7 +608,7 @@ export function PrismHero({
       window.removeEventListener("scroll", onScroll)
       window.removeEventListener("resize", onScroll)
     }
-  }, [reducedMotion, staticProgress])
+  }, [reducedMotion, staticProgress, spinOnWheel])
 
   const isStatic = staticProgress !== undefined
 
