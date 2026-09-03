@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+:root {
+  --font-display: "Libre Baskerville", Georgia, serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+html,
+body {
+  margin: 0;
+  background: #08080b;
+  color: #ede8df;
+}
+
+#root {
+  min-height: 100vh;
+}
