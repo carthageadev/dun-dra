@@ -187,8 +187,9 @@ function Crystal({
     const st = spinState.current
     if (st && !reducedMotion) {
       // Inertia glide: wheel flicks feed velocity, friction bleeds it off.
+      // Kept gentle: small flicks nudge, hard flicks cap at ~half a turn.
       st.angle += st.vel
-      st.vel *= 0.95
+      st.vel *= 0.93
       if (Math.abs(st.vel) < 0.0001) st.vel = 0
     }
     const spin = (reducedMotion ? 0 : t * 0.13 + p * Math.PI * 1.1) + (st?.angle ?? 0)
@@ -585,7 +586,7 @@ export function PrismHero({
       const onWheel = (e: WheelEvent) => {
         const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY
         const st = spinState.current
-        st.vel = Math.min(0.5, Math.max(-0.5, st.vel + dy * 0.0016))
+        st.vel = Math.min(0.18, Math.max(-0.18, st.vel + dy * 0.0006))
       }
       el?.addEventListener("wheel", onWheel, { passive: true })
       return () => {
