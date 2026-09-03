@@ -138,12 +138,15 @@ function Headline({
 
 function Crystal({
   progress,
+  spinState,
   reducedMotion,
   dispersion,
   tint,
   spec,
 }: {
   progress: React.RefObject<number>
+  /** Unbounded wheel spin (angle + velocity) kept separate from progress. */
+  spinState: React.RefObject<{ angle: number; vel: number }>
   reducedMotion: boolean
   dispersion: number
   tint: string
@@ -181,7 +184,14 @@ function Crystal({
 
     // Slow idle rotation, accelerated by scroll. Never linear — the drift
     // keeps facets catching light at irregular intervals.
-    const spin = reducedMotion ? 0 : t * 0.13 + p * Math.PI * 1.1
+    const st = spinState.current
+    if (st && !reducedMotion) {
+      // Inertia glide: wheel flicks feed velocity, friction bleeds it off.
+      st.angle += st.vel
+      st.vel *= 0.95
+      if (Math.abs(st.vel) < 0.0001) st.vel = 0
+    }
+    const spin = (reducedMotion ? 0 : t * 0.13 + p * Math.PI * 1.1) + (st?.angle ?? 0)
     mesh.rotation.y = spin
     mesh.rotation.x = Math.sin(t * 0.21) * 0.14 + p * 0.4
     mesh.rotation.z = Math.cos(t * 0.17) * 0.08
@@ -312,6 +322,7 @@ function Scene({
   displayFont,
   italic,
   progress,
+  spinState,
   reducedMotion,
   dispersion,
   tint,
@@ -323,6 +334,7 @@ function Scene({
   displayFont: string
   italic: boolean
   progress: React.RefObject<number>
+  spinState: React.RefObject<{ angle: number; vel: number }>
   reducedMotion: boolean
   dispersion: number
   tint: string
@@ -365,6 +377,7 @@ function Scene({
         <Headline texture={texture} />
         <Crystal
           progress={progress}
+          spinState={spinState}
           reducedMotion={reducedMotion}
           dispersion={dispersion}
           tint={tint}
@@ -493,6 +506,8 @@ export function PrismHero({
 }: PrismHeroProps) {
   const sectionRef = React.useRef<HTMLDivElement>(null)
   const progress = React.useRef(0)
+  // Wheel spin state: unbounded angle + velocity for the inertia glide.
+  const spinState = React.useRef({ angle: 0, vel: 0 })
   const [reducedMotion, setReducedMotion] = React.useState(false)
   const [ready, setReady] = React.useState(false)
   const prefersReduced = useReducedMotion()
@@ -561,16 +576,16 @@ export function PrismHero({
     const base =
       staticProgress !== undefined ? Math.min(1, Math.max(0, staticProgress)) : 0
 
-    // Wheel-driven spin for non-scrolling pages: accumulates wheel deltas
-    // into the same normalized progress the scroll path used to write.
+    // Wheel-driven spin for non-scrolling pages: wheel flicks feed an
+    // unbounded angle with inertia, so it loops forever and glides to a
+    // stop after release. Tilt/scale stay pinned to the static base.
     if (spinOnWheel && !reducedMotion) {
-      let v = base
-      paint(v)
+      paint(base)
       const el = stageRef.current ?? sectionRef.current
       const onWheel = (e: WheelEvent) => {
         const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY
-        v = Math.min(1, Math.max(0, v + dy * 0.0009))
-        paint(v)
+        const st = spinState.current
+        st.vel = Math.min(0.5, Math.max(-0.5, st.vel + dy * 0.0016))
       }
       el?.addEventListener("wheel", onWheel, { passive: true })
       return () => {
@@ -650,6 +665,7 @@ export function PrismHero({
               displayFont={displayFont}
               italic={italicHeadline}
               progress={progress}
+              spinState={spinState}
               reducedMotion={reducedMotion}
               dispersion={dispersion}
               tint={tint}
