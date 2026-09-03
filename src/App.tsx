@@ -44,6 +44,7 @@ export default function App() {
         key={fontReady ? "ready" : "waiting"}
         eyebrow="DUNDRA"
         headline="Refraction"
+        description="An ancient crystal that remembers every fate ever rolled. Gaze through it and glimpse your next adventure. Every choice shapes a new reality."
         staticProgress={0}
         action={
           <a
