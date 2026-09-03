@@ -42,7 +42,7 @@ export default function App() {
       </span>
       <PrismHero
         key={fontReady ? "ready" : "waiting"}
-        eyebrow="BEVEL UI"
+        eyebrow="DUNDRA"
         headline="Refraction"
         staticProgress={0}
         action={
